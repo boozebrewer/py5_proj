@@ -12,11 +12,17 @@ class Particle:
         self.y = random.uniform(50, HEIGHT - 50)
         self.vx = random.uniform(-2, 2)
         self.vy = random.uniform(-2, 2)
-        self.r = 6
+        self.r = 8
+        self.trail = []
 
     def move(self):
         self.x += self.vx
         self.y += self.vy
+
+        # Store trail
+        self.trail.append((self.x, self.y))
+        if len(self.trail) > 15:
+            self.trail.pop(0)
 
         # Bounce off walls
         if self.x < self.r or self.x > WIDTH - self.r:
@@ -32,8 +38,20 @@ class Particle:
 
     def show(self):
         speed = (self.vx ** 2 + self.vy ** 2) ** 0.5
-        color = py5.color(0, 0, 255) if speed < 2 else py5.color(255, 0, 0)
+        color = py5.color(0, 120, 255) if speed < 2 else py5.color(255, 60, 60)
+        # Draw trail
+        for i, (tx, ty) in enumerate(self.trail):
+            alpha = int(80 + 120 * i / len(self.trail)) if self.trail else 200
+            py5.fill(py5.color(py5.red(color), py5.green(color), py5.blue(color), alpha))
+            py5.no_stroke()
+            py5.circle(tx, ty, self.r * 1.2)
+        # Draw particle with shadow
+        py5.fill(py5.color(40, 40, 40, 80))
+        py5.no_stroke()
+        py5.circle(self.x + 3, self.y + 3, self.r * 2.2)
         py5.fill(color)
+        py5.stroke(255)
+        py5.stroke_weight(1)
         py5.circle(self.x, self.y, self.r * 2)
 
 particles = []
@@ -45,20 +63,27 @@ def setup():
     particles = [Particle() for _ in range(NUM_PARTICLES)]
 
 def draw():
-    py5.background(200)
-    # Draw box
-    py5.stroke(0)
-    py5.no_fill()
-    py5.rect(0, 0, WIDTH, HEIGHT)
-    # Draw gate
-    py5.stroke(0)
-    py5.stroke_weight(4)
-    py5.line(GATE_X, 0, GATE_X, GATE_Y1)
-    py5.line(GATE_X, GATE_Y2, GATE_X, HEIGHT)
+    # Gradient background
+    for i in range(HEIGHT):
+        py5.stroke(py5.color(220 - i//4, 240 - i//8, 255 - i//6))
+        py5.line(0, i, WIDTH, i)
+    # Draw box with rounded corners and shadow
+    py5.fill(255, 255, 255, 180)
+    py5.stroke(80, 80, 120, 120)
+    py5.stroke_weight(3)
+    py5.rect(5, 5, WIDTH-10, HEIGHT-10, 30)
+    # Animated gate
+    gate_anim = py5.frame_count % 60
+    gate_color = py5.color(120 + gate_anim*2, 120, 220 - gate_anim*3)
+    py5.stroke(gate_color)
+    py5.stroke_weight(7)
+    py5.line(GATE_X, 10, GATE_X, GATE_Y1)
+    py5.line(GATE_X, GATE_Y2, GATE_X, HEIGHT-10)
     py5.stroke_weight(1)
     py5.no_stroke()
-    py5.fill(0)
-    py5.text("Demon", GATE_X - 20, HEIGHT // 2)
+    py5.fill(40, 40, 60, 180)
+    py5.text_size(22)
+    py5.text("Maxwell's Demon", GATE_X - 90, HEIGHT // 2 - 10)
 
     # Split particles into red and blue containers
     red_particles = []
@@ -70,14 +95,24 @@ def draw():
         else:
             red_particles.append(p)
 
-    # Draw containers and counts
-    py5.fill(0, 0, 255, 80)
-    py5.rect(10, 10, 60, HEIGHT - 20)
-    py5.fill(255, 0, 0, 80)
-    py5.rect(WIDTH - 70, 10, 60, HEIGHT - 20)
-    py5.fill(0)
-    py5.text(f"Blue: {len(blue_particles)}", 15, 30)
-    py5.text(f"Red: {len(red_particles)}", WIDTH - 65, 30)
+    # Draw containers with rounded corners and gradient
+    py5.no_stroke()
+    for i in range(60):
+        py5.fill(0, 120, 255, 40 + i)
+        py5.rect(10, 10 + i, 60, HEIGHT - 20 - 2*i, 18)
+    for i in range(60):
+        py5.fill(255, 60, 60, 40 + i)
+        py5.rect(WIDTH - 70, 10 + i, 60, HEIGHT - 20 - 2*i, 18)
+    # Container shadows
+    py5.fill(40, 40, 60, 60)
+    py5.rect(13, HEIGHT-25, 54, 10, 8)
+    py5.rect(WIDTH-67, HEIGHT-25, 54, 10, 8)
+    # Container labels
+    py5.fill(0, 120, 255)
+    py5.text_size(18)
+    py5.text(f"Blue: {len(blue_particles)}", 15, 35)
+    py5.fill(255, 60, 60)
+    py5.text(f"Red: {len(red_particles)}", WIDTH - 65, 35)
 
     # Move and show particles
     for p in particles:
