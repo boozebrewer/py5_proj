@@ -66,7 +66,12 @@ class DemonSketch:
         left_particles = []
         right_particles = []
         any_open = False
+        next_particles: List[Particle] = []
         for p in self.particles:
+            if p.is_dead():
+                next_particles.append(Particle(config.WIDTH, config.HEIGHT))
+                continue
+            
             near_gate = abs(p.x - config.GATE_X) < (p.base_r + 2) and (config.GATE_Y1 < p.y < config.GATE_Y2)
             if near_gate:
                 s = p.speed()
@@ -86,12 +91,15 @@ class DemonSketch:
                     else:
                         p.vx *= -1.0
                         p.x += p.vx * 1.2
-            p.move(config.WIDTH, config.HEIGHT, self.paused)
+            p.update(config.WIDTH, config.HEIGHT, self.paused)
             drawing.draw_particle(p)
             if p.x < config.GATE_X:
                 left_particles.append(p)
             else:
                 right_particles.append(p)
+            next_particles.append(p)
+        
+        self.particles = next_particles
 
         if any_open:
             self.door_open = 1.0

@@ -16,12 +16,31 @@ class Particle:
         speed = random.uniform(0.2, 3.0)
         self.vx = math.cos(angle) * speed
         self.vy = math.sin(angle) * speed
-        self.base_r = random.uniform(3.5, 7.5)
-        self.trail: Deque[Tuple[float, float]] = deque(maxlen=18)
+        
+        self.molecule_type = random.choice(["h2o", "co2", "o2"])
+        if self.molecule_type == "h2o":
+            self.base_r = 5.0
+        elif self.molecule_type == "co2":
+            self.base_r = 7.0
+        else:  # o2
+            self.base_r = 6.0
+        
+        self.rot_angle = random.uniform(0, math.tau)
+        self.rot_speed = random.uniform(-0.05, 0.05)
 
-    def move(self, w: int, h: int, paused: bool):
+        max_trail_len = random.randint(10, 25)
+        self.trail: Deque[Tuple[float, float]] = deque(maxlen=max_trail_len)
+        self.age = 0
+        self.lifespan = random.uniform(120, 300)  # in frames
+
+    def is_dead(self) -> bool:
+        return self.age > self.lifespan
+
+    def update(self, w: int, h: int, paused: bool):
         if paused:
             return
+        self.age += 1
+        self.rot_angle += self.rot_speed
         self.x += self.vx
         self.y += self.vy
         self.trail.append((self.x, self.y))

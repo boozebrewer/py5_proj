@@ -17,7 +17,7 @@ def speed_color(s: float):
     r = int(60 + 195 * t)
     g = int(160 * (1 - t))
     b = int(200 - 100 * t)
-    return py5.color(r, g, b)
+    return py5.color(r, g, b, 255)
 
 def create_demon_graphic(size: int):
     """Create and return a PImage-like object. Also save PNG to disk."""
@@ -113,18 +113,74 @@ def draw_gate_aura():
 
 def draw_particle(p: Particle):
     col = speed_color(p.speed())
-    recent = list(p.trail)[-10:]
-    for i, (tx, ty) in enumerate(recent):
-        a = int(30 + 220 * (i / max(1, len(recent))))
-        py5.no_stroke()
-        py5.fill(py5.red(col), py5.green(col), py5.blue(col), a)
-        size = p.base_r * (0.6 + 0.6 * i / 10)
-        py5.ellipse(tx, ty, size * 2, size * 2)
-    py5.stroke(255, 255, 255, 120)
-    py5.stroke_weight(1)
-    py5.fill(col)
-    r = p.base_r * (1 + 0.6 * (p.speed() / (config.SPEED_THRESHOLD + 0.1)))
-    py5.ellipse(p.x, p.y, r * 2, r * 2)
+    life_t = p.age / p.lifespan
+    # parabolic fade in/out
+    alpha_mul = min(1.0, 4.0 * life_t * (1.0 - life_t))
+
+    # glow
+    glow_alpha = int(80 * alpha_mul)
+    py5.no_stroke()
+    py5.fill(py5.red(col), py5.green(col), py5.blue(col), glow_alpha)
+    glow_r = p.base_r * (3.0 + 2.5 * math.sin(life_t * math.pi))
+    py5.ellipse(p.x, p.y, glow_r * 2, glow_r * 2)
+
+    # trail
+    if len(p.trail) > 1:
+        for i, (tx, ty) in enumerate(p.trail):
+            trail_t = i / len(p.trail)
+            a = int(alpha_mul * (30 + 200 * trail_t))
+            py5.no_stroke()
+            py5.fill(py5.red(col), py5.green(col), py5.blue(col), a)
+            size = p.base_r * (0.2 + 0.5 * trail_t)
+            py5.ellipse(tx, ty, size * 2, size * 2)
+
+    # core molecule
+    py5.push_matrix()
+    py5.translate(p.x, p.y)
+    py5.rotate(p.rot_angle)
+    
+    alpha = int(255 * alpha_mul)
+    
+    O_color = (240, 50, 50, alpha)
+    H_color = (245, 245, 245, alpha)
+    C_color = (80, 80, 80, alpha)
+    
+    O_rad, H_rad, C_rad = 4, 2.5, 4.5
+    
+    py5.stroke(20, 20, 30, int(180 * alpha_mul))
+    py5.stroke_weight(1.5)
+
+    if p.molecule_type == "h2o":
+        # H2O - bent molecule
+        angle = math.radians(104.5 / 2)
+        dist = 6
+        # Oxygen
+        py5.fill(*O_color)
+        py5.ellipse(0, 0, O_rad * 2, O_rad * 2)
+        # Hydrogens
+        py5.fill(*H_color)
+        hx1, hy1 = dist * math.cos(angle), dist * math.sin(angle)
+        hx2, hy2 = dist * math.cos(-angle), dist * math.sin(-angle)
+        py5.ellipse(hx1, hy1, H_rad * 2, H_rad * 2)
+        py5.ellipse(hx2, hy2, H_rad * 2, H_rad * 2)
+    elif p.molecule_type == "co2":
+        # CO2 - linear molecule
+        dist = 8
+        # Carbon
+        py5.fill(*C_color)
+        py5.ellipse(0, 0, C_rad * 2, C_rad * 2)
+        # Oxygens
+        py5.fill(*O_color)
+        py5.ellipse(-dist, 0, O_rad * 2, O_rad * 2)
+        py5.ellipse(dist, 0, O_rad * 2, O_rad * 2)
+    else:  # o2
+        # O2 - diatomic
+        dist = 4
+        py5.fill(*O_color)
+        py5.ellipse(-dist, 0, O_rad * 2, O_rad * 2)
+        py5.ellipse(dist, 0, O_rad * 2, O_rad * 2)
+
+    py5.pop_matrix()
     py5.no_stroke()
 
 def draw_container(x, y, w, h, label, col, count):
